@@ -1,0 +1,61 @@
+name: Download and Store Delta IPA with Git LFS
+
+on:
+  workflow_dispatch: # Allows manual triggering of the workflow
+  push:
+    branches:
+      - main # Trigger on push to main branch (adjust as needed)
+
+jobs:
+  download-and-store:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Git LFS
+      - name: Set up Git LFS
+        run: |
+          git lfs install
+          git lfs track "*.ipa" # Track all .ipa files with LFS
+          git add .gitattributes
+
+      # Step 3: Download the file from Filebin
+      - name: Download Delta IPA
+        run: |
+          curl -L -o Delta.ipa https://filebin.net/eq2s9xnnan0b549v/Delta.ipa
+        continue-on-error: true # Continue even if download fails (handle with caution)
+
+      # Step 4: Verify file download
+      - name: Check if file exists
+        run: |
+          if [ -f Delta.ipa ]; then
+            echo "File downloaded successfully."
+          else
+            echo "Error: File download failed."
+            exit 1
+          fi
+
+      # Step 5: Add the file to Git LFS
+      - name: Add file to Git
+        run: |
+          git add Delta.ipa
+          git lfs push --all origin
+
+      # Step 6: Commit and push changes
+      - name: Commit and push
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git commit -m "Add Delta.ipa via Git LFS"
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Step 7: Clean up (optional, to avoid storing sensitive files in runner)
+      - name: Clean up
+        run: |
+          rm -f Delta.ipa
+        if: always()
